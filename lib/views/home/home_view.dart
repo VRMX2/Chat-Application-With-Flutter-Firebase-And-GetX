@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:appchatfl/controllers/auth_controller.dart';
 import 'package:appchatfl/theme/app_theme.dart';
+import 'package:appchatfl/routes/app_routes.dart';
+import 'package:appchatfl/models/user_model.dart';
+import 'package:appchatfl/views/chat/contacts_screen.dart';
+import 'package:appchatfl/views/chat/profile_screen.dart';
 
 class HomeView extends StatefulWidget {
   const HomeView({super.key});
@@ -581,22 +585,25 @@ class _HomeViewState extends State<HomeView>
         'User';
   }
 
-  void _handleMenuSelection(String value) {
-    switch (value) {
-      case 'profile':
-        _showProfileDialog(Get.context!);
-        break;
-      case 'settings':
-        _showSnackbar('Settings coming soon!');
-        break;
-      case 'help':
-        _showSnackbar('Help & Feedback coming soon!');
-        break;
-      case 'logout':
-        _showLogoutDialog(Get.context!);
-        break;
-    }
+	void _handleMenuSelection(String value) {
+  switch (value) {
+    case 'profile':
+      Get.toNamed(AppRoutes.profile);
+      break;
+    case 'contacts':
+      Get.toNamed(AppRoutes.contacts);
+      break;
+    case 'settings':
+      _showSnackbar('Settings coming soon!');
+      break;
+    case 'help':
+      _showSnackbar('Help & Feedback coming soon!');
+      break;
+    case 'logout':
+      _showLogoutDialog(Get.context!);
+      break;
   }
+}
 
   void _showThemeDialog(BuildContext context) {
     Get.dialog(
@@ -738,9 +745,22 @@ class _HomeViewState extends State<HomeView>
     );
   }
 
-  void _openChatScreen(BuildContext context, Map<String, dynamic> chat) {
-    _showSnackbar('Chat with ${chat['name']} coming soon!');
-  }
+	void _openChatScreen(BuildContext context, Map<String, dynamic> chat) {
+  // Create a mock user for demo purposes
+  final demoUser = UserModel(
+    uid: 'demo_${chat['name'].toLowerCase()}',
+    email: '${chat['name'].toLowerCase()}@example.com',
+    fullName: chat['name'],
+    avatarUrl: null,
+    status: chat['message'],
+    isOnline: chat['isOnline'],
+    lastSeen: DateTime.now(),
+    createdAt: DateTime.now(),
+    updatedAt: DateTime.now(),
+  );
+  
+  Get.toNamed(AppRoutes.chat, arguments: demoUser);
+}
 
   void _showProfileDialog(BuildContext context) {
     final TextEditingController displayNameController = TextEditingController(
