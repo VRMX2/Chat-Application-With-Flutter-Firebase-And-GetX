@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:appchatfl/services/auth_service.dart';
 import 'package:appchatfl/routes/app_routes.dart';
 

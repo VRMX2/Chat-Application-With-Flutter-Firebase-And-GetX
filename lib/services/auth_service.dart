@@ -1,7 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:uuid/uuid.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -37,6 +36,9 @@ class AuthService {
         password: password,
       );
 
+      // Update display name
+      await result.user?.updateDisplayName(fullName);
+
       // Create user document in Firestore
       await _firestore.collection('users').doc(result.user?.uid).set({
         'uid': result.user?.uid,
@@ -46,6 +48,8 @@ class AuthService {
         'updatedAt': FieldValue.serverTimestamp(),
         'avatarUrl': '',
         'status': 'Hey there! I am using Chat App 2026',
+        'isOnline': true,
+        'lastSeen': FieldValue.serverTimestamp(),
       });
 
       return result.user;
@@ -60,9 +64,13 @@ class AuthService {
       // Trigger the authentication flow
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
 
+      if (googleUser == null) {
+        throw Exception('Google sign in was cancelled');
+      }
+
       // Obtain the auth details from the request
       final GoogleSignInAuthentication googleAuth =
-      await googleUser!.authentication;
+      await googleUser.authentication;
 
       // Create a new credential
       final credential = GoogleAuthProvider.credential(
@@ -82,20 +90,38 @@ class AuthService {
           'fullName': result.user?.displayName,
           'createdAt': FieldValue.serverTimestamp(),
           'updatedAt': FieldValue.serverTimestamp(),
-          'avatarUrl': result.user?.photoURL,
+          'avatarUrl': result.user?.photoURL ?? '',
           'status': 'Hey there! I am using Chat App 2026',
+          'isOnline': true,
+          'lastSeen': FieldValue.serverTimestamp(),
+        });
+      } else {
+        // Update existing user's online status
+        await _firestore.collection('users').doc(result.user?.uid).update({
+          'isOnline': true,
+          'lastSeen': FieldValue.serverTimestamp(),
         });
       }
 
       return result.user;
     } on FirebaseAuthException catch (e) {
       throw _handleAuthError(e);
+    } catch (e) {
+      throw Exception('Google sign in failed: $e');
     }
   }
 
   // Sign out
   Future<void> signOut() async {
     try {
+      // Update user's online status before signing out
+      if (currentUser != null) {
+        await _firestore.collection('users').doc(currentUser!.uid).update({
+          'isOnline': false,
+          'lastSeen': FieldValue.serverTimestamp(),
+        });
+      }
+
       await _googleSignIn.signOut();
       await _auth.signOut();
     } catch (e) {
@@ -122,7 +148,9 @@ class AuthService {
       // Update Firebase Auth profile
       if (displayName != null || photoURL != null) {
         await currentUser?.updateDisplayName(displayName);
-        await currentUser?.updatePhotoURL(photoURL);
+        if (photoURL != null) {
+          await currentUser?.updatePhotoURL(photoURL);
+        }
       }
 
       // Update Firestore user document
@@ -173,6 +201,10 @@ class AuthService {
         return 'The password is too weak.';
       case 'network-request-failed':
         return 'A network error has occurred.';
+      case 'invalid-credential':
+        return 'The provided credentials are invalid.';
+      case 'too-many-requests':
+        return 'Too many failed attempts. Please try again later.';
       default:
         return 'An unexpected error occurred. Please try again.';
     }

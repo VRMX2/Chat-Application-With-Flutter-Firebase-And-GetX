@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:appchatfl/routes/app_routes.dart';
 
 class SplashView extends StatefulWidget {
@@ -14,9 +15,18 @@ class _SplashViewState extends State<SplashView> {
   @override
   void initState() {
     super.initState();
-    // Navigate to Login (or Home if logged in) after 3 seconds
+    _checkAuthStatus();
+  }
+
+  void _checkAuthStatus() {
     Timer(const Duration(seconds: 3), () {
-      Get.offAllNamed(AppRoutes.login); // Change to home if already authenticated
+      // Check if user is already logged in
+      User? user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        Get.offAllNamed(AppRoutes.home);
+      } else {
+        Get.offAllNamed(AppRoutes.login);
+      }
     });
   }
 
@@ -30,20 +40,43 @@ class _SplashViewState extends State<SplashView> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             // App Logo
-            Icon(
-              Icons.chat_bubble_outline,
-              size: 90,
-              color: Theme.of(context).colorScheme.primary,
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Theme.of(context).colorScheme.primary,
+                    Theme.of(context).colorScheme.secondary,
+                  ],
+                ),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.chat_bubble_outline,
+                size: 90,
+                color: Colors.white,
+              ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 30),
             // Title
             Text(
               "Chat App 2026",
-              style: Theme.of(context).textTheme.displaySmall,
+              style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
-            const SizedBox(height: 30),
+            const SizedBox(height: 10),
+            Text(
+              "Connect with friends instantly",
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Colors.grey,
+              ),
+            ),
+            const SizedBox(height: 50),
             // Loading Indicator
-            const CircularProgressIndicator(),
+            CircularProgressIndicator(
+              color: Theme.of(context).colorScheme.primary,
+            ),
           ],
         ),
       ),
